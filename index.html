@@ -166,6 +166,14 @@
       setTimeout(stepAnimate, 500);
     }
 
+    // node click animation
+    Highcharts.addEvent(chart.series[0], 'click', function (e) {
+      const clickedNode = e.point.id;
+      if (['Transaction Reference', 'Report Status', 'Trading Venue'].includes(clickedNode)) {
+        highlightPath(clickedNode);
+      }
+    });
+
     // reset
     function resetChart() {
       chart.series[0].setData(baseData.map(([from, to]) => ({
