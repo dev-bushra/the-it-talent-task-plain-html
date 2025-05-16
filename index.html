@@ -125,34 +125,45 @@
       };
 
       const path = fieldPaths[field];
-      const highlightEdges = new Set();
-      const highlightNodes = new Set(path);
+      if (!path) return;
 
-      for (let i = 0; i < path.length - 1; i++) {
-        highlightEdges.add(`${path[i]}-${path[i+1]}`);
+      let i = 0;
+
+      function stepAnimate() {
+        if (i >= path.length - 1) return;
+
+        const from = path[i];
+        const to = path[i + 1];
+
+        // update edge
+        chart.series[0].data.forEach(link => {
+          if ((link.from === from && link.to === to) || (link.from === to && link.to === from)) {
+            link.update({ color: 'green', width: 4 }, false);
+          }
+        });
+
+        // update node color
+        chart.series[0].nodes.forEach(node => {
+          if (node.id === from || node.id === to) {
+            node.update({
+              marker: {
+                fillColor: node.id === field ? '#ff6600' : '#28a745'
+              }
+            }, false);
+          }
+        });
+
+        chart.redraw();
+
+        i++;
+
+        // delay animated effect
+        setTimeout(stepAnimate, 500);
       }
 
-      chart.series[0].setData(baseData.map(([from, to]) => {
-        const key = `${from}-${to}`;
-        return {
-          from,
-          to,
-          color: highlightEdges.has(key) ? 'green' : '#ccc',
-          width: highlightEdges.has(key) ? 4 : 1
-        };
-      }), false);
-
-      chart.series[0].nodes.forEach(node => {
-        node.update({
-          marker: {
-            fillColor: highlightNodes.has(node.id)
-              ? (node.id === field ? '#ff6600' : '#28a745') 
-              : '#999'
-          }
-        }, false);
-      });
-
-      chart.redraw();
+      // clear previous highlights nodes
+      resetChart();
+      setTimeout(stepAnimate, 500);
     }
 
     // reset
