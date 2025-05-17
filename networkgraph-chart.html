@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>The IT Talent Test</title>
+
+  <!-- highchats cdn -->
+  <script src="https://code.highcharts.com/highcharts.js"></script>
+  <script src="https://code.highcharts.com/modules/networkgraph.js"></script>
+
+  <!-- styles -->
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      padding: 20px;
+      color: #333;
+    }
+    #container {
+      height: 800px;
+      width: 100%;
+      margin: 20px auto;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    h2 {
+      text-align: center;
+    }
+    .buttons-container {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .custom-button {
+      padding: 10px 20px;
+      margin: 5px;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+    }
+    .custom-button:hover {
+      background-color: #0056b3;
+    }
+    .clear-button {
+      background-color: #dc3545;
+    }
+    .clear-button:hover {
+      background-color: #b02a37;
+    }
+  </style>
+</head>
+<body>
+  <h2>Flow Visualizer</h2>
+  <div class="buttons-container">
+    <button class="custom-button" onclick="highlightPath('Transaction Reference')">Transaction Reference</button>
+    <button class="custom-button" onclick="highlightPath('Report Status')">Report Status</button>
+    <button class="custom-button" onclick="highlightPath('Trading Venue')">Trading Venue</button>
+    <button class="custom-button clear-button" onclick="resetChart()">Clear</button>
+  </div>
+  <div id="container"></div>
+
+  <!-- script -->
+  <script>
+    const baseData = [
+      ['FXALL GUI', 'TradeEnricher'],
+      ['TradeEnricher', 'Kraken'],
+      ['TradeEnricher', 'DealFeed'],
+      ['Kraken', 'RTS 22'],
+      ['DealFeed', 'RTS 22'],
+      ['TradeEnricher', 'RTS 22'],
+      ['RTS 22', 'Transaction Reference'],
+      ['RTS 22', 'Report Status'],
+      ['RTS 22', 'Trading Venue']
+    ];
+
+    // networkgraph chart
+    const chart = Highcharts.chart('container', {
+      chart: {
+        type: 'networkgraph',
+        animation: true
+      },
+      title: {
+        text: ' '
+      },
+      plotOptions: {
+        networkgraph: {
+          keys: ['from', 'to'],
+          layoutAlgorithm: {
+            enableSimulation: true,
+            friction: -0.9
+          }
+        },
+        series: {
+          marker: {
+            radius: 20,
+            fillColor: '#999'
+          },
+          states: {
+            inactive: {
+              enabled: false
+            }
+          }
+        }
+      },
+      series: [{
+        dataLabels: {
+          enabled: true,
+          linkFormat: '',
+          allowOverlap: true
+        },
+        data: baseData.map(d => ({ from: d[0], to: d[1] }))
+      }]
+    });
+
+    // path
+    function highlightPath(field) {
+      const fieldPaths = {
+        'Transaction Reference': ['FXALL GUI', 'TradeEnricher', 'DealFeed', 'RTS 22', 'Transaction Reference'],
+        'Report Status': ['FXALL GUI', 'TradeEnricher', 'Kraken', 'RTS 22', 'Report Status'],
+        'Trading Venue': ['FXALL GUI', 'TradeEnricher', 'RTS 22', 'Trading Venue']
+      };
+
+      const path = fieldPaths[field];
+      if (!path) return;
+
+      let i = 0;
+
+      function stepAnimate() {
+        if (i >= path.length - 1) return;
+
+        const from = path[i];
+        const to = path[i + 1];
+
+        // update edge
+        chart.series[0].data.forEach(link => {
+          if ((link.from === from && link.to === to) || (link.from === to && link.to === from)) {
+            link.update({ color: 'green', width: 4 }, false);
+          }
+        });
+
+        // update node color
+        chart.series[0].nodes.forEach(node => {
+          if (node.id === from || node.id === to) {
+            node.update({
+              marker: {
+                fillColor: node.id === field ? '#ff6600' : '#28a745'
+              }
+            }, false);
+          }
+        });
+
+        chart.redraw();
+
+        i++;
+
+        // delay animated effect
+        setTimeout(stepAnimate, 500);
+      }
+
+      // clear previous highlights nodes
+      resetChart();
+      setTimeout(stepAnimate, 500);
+    }
+
+    // node click animation
+    Highcharts.addEvent(chart.series[0], 'click', function (e) {
+      const clickedNode = e.point.id;
+      if (['Transaction Reference', 'Report Status', 'Trading Venue'].includes(clickedNode)) {
+        highlightPath(clickedNode);
+      }
+    });
+
+    // reset
+    function resetChart() {
+      chart.series[0].setData(baseData.map(([from, to]) => ({
+        from,
+        to,
+        color: '#ccc',
+        width: 1
+      })), false);
+
+      chart.series[0].nodes.forEach(node => {
+        node.update({
+          marker: {
+            fillColor: '#999'
+          }
+        }, false);
+      });
+
+      chart.redraw();
+    }
+    
+  </script>
+</body>
+</html>
